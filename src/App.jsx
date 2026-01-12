@@ -9,13 +9,13 @@ import {
   Activity,
   Type,
   Users,
-  Layers
+  Layers,
+  UserCheck,
+  UserPlus
 } from 'lucide-react';
 
 /**
- * OmVetan Payroll - Zero-Dependency CSS Version
- * No Tailwind, No PostCSS required. 
- * Preserves all layout features and PDF wrapping.
+ * OmVetan Payroll - Triple Signatory Support (Footer Removed)
  */
 
 const styles = {
@@ -174,6 +174,12 @@ export default function App() {
   const [employeeNames, setEmployeeNames] = useState("");
   const [requiredFields, setRequiredFields] = useState("");
   const [slipHeader, setSlipHeader] = useState("SALARY SLIP");
+  
+  // Three signatory names
+  const [signatory1, setSignatory1] = useState("");
+  const [signatory2, setSignatory2] = useState("");
+  const [signatory3, setSignatory3] = useState("");
+
   const [previewList, setPreviewList] = useState([]); 
   const [libsLoaded, setLibsLoaded] = useState(false);
   const [logs, setLogs] = useState([
@@ -285,9 +291,12 @@ export default function App() {
   const createEmployeeDoc = (doc, employee, index, total) => {
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const maxWidth = pageWidth - (margin * 2);
 
     if (index > 0) doc.addPage();
+    
+    // Header
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(30, 41, 59);
@@ -315,6 +324,7 @@ export default function App() {
     doc.setFontSize(12);
     doc.text(String(employee.name).toUpperCase(), margin, currentY);
 
+    // Table
     let tableBody = [];
     let tableHead = [['Description', 'Value']];
     if (employee.stats.length > 12) {
@@ -337,9 +347,29 @@ export default function App() {
       theme: 'striped',
       headStyles: { fillColor: [79, 70, 229] },
       styles: { fontSize: 8.5, cellPadding: 4 },
-      margin: { left: margin, right: margin },
+      margin: { left: margin, right: margin, bottom: 40 }, 
       avoidPageBreak: true 
     });
+
+    // Signature Area
+    const finalY = pageHeight - 30;
+    const colWidth = maxWidth / 3;
+    
+    const renderSignatory = (name, xPos) => {
+      if (!name) return;
+      doc.setDrawColor(203, 213, 225);
+      doc.line(xPos, finalY - 5, xPos + 40, finalY - 5);
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59);
+      doc.text(name, xPos, finalY);
+    };
+
+    // Distribute signatories
+    renderSignatory(signatory1, margin);
+    renderSignatory(signatory2, margin + colWidth);
+    renderSignatory(signatory3, margin + (colWidth * 2));
   };
 
   const generateBulkPDF = () => {
@@ -392,24 +422,50 @@ export default function App() {
 
           <section style={styles.card}>
             <div style={styles.headerRow}>
-              <Search size={16} color="#4f46e5" /> 2. Parameters
+              <Search size={16} color="#4f46e5" /> 2. Configuration
             </div>
             <div style={styles.inputGroup}>
-              <label style={styles.inputLabel}>Salary Header</label>
+              <label style={styles.inputLabel}>Slip Header (Company Name)</label>
               <div style={styles.inputWrapper}>
                 <Type size={16} style={styles.iconInside} />
                 <input style={styles.input} type="text" placeholder="COMPANY NAME" value={slipHeader} onChange={e => setSlipHeader(e.target.value)} />
               </div>
             </div>
+            
             <div style={styles.inputGroup}>
-              <label style={styles.inputLabel}>Employee Name(s)</label>
+              <label style={styles.inputLabel}>Employee(s) Search</label>
               <div style={styles.inputWrapper}>
                 <Users size={16} style={styles.iconInside} />
-                <input style={styles.input} type="text" placeholder="John Doe or *" value={employeeNames} onChange={e => setEmployeeNames(e.target.value)} />
+                <input style={styles.input} type="text" placeholder="John, Doe or *" value={employeeNames} onChange={e => setEmployeeNames(e.target.value)} />
               </div>
             </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+              <div style={styles.inputGroup}>
+                <label style={styles.inputLabel}>Signatory 1</label>
+                <div style={styles.inputWrapper}>
+                  <UserCheck size={14} style={styles.iconInside} />
+                  <input style={{...styles.input, paddingLeft: '2.2rem'}} type="text" placeholder="Prep. By" value={signatory1} onChange={e => setSignatory1(e.target.value)} />
+                </div>
+              </div>
+              <div style={styles.inputGroup}>
+                <label style={styles.inputLabel}>Signatory 2</label>
+                <div style={styles.inputWrapper}>
+                  <UserPlus size={14} style={styles.iconInside} />
+                  <input style={{...styles.input, paddingLeft: '2.2rem'}} type="text" placeholder="Chk. By" value={signatory2} onChange={e => setSignatory2(e.target.value)} />
+                </div>
+              </div>
+              <div style={styles.inputGroup}>
+                <label style={styles.inputLabel}>Signatory 3</label>
+                <div style={styles.inputWrapper}>
+                  <UserCheck size={14} style={styles.iconInside} />
+                  <input style={{...styles.input, paddingLeft: '2.2rem'}} type="text" placeholder="Appr. By" value={signatory3} onChange={e => setSignatory3(e.target.value)} />
+                </div>
+              </div>
+            </div>
+
             <div style={styles.inputGroup}>
-              <label style={styles.inputLabel}>Specific Fields</label>
+              <label style={styles.inputLabel}>Specific Fields (Optional)</label>
               <div style={styles.inputWrapper}>
                 <CheckCircle2 size={16} style={styles.iconInside} />
                 <input style={styles.input} type="text" placeholder="Basic, Net Salary" value={requiredFields} onChange={e => setRequiredFields(e.target.value)} />
